@@ -1,0 +1,272 @@
+---
+title: "My analysis report"
+author: "Your name"
+date: '2022-03-22'
+output:
+  pdf_document: default
+  html_document:
+    keep_md: yes
+  word_document: default
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE,
+                      warning = FALSE,
+                      message = FALSE,
+                      out.width = "100%",
+                      fig.align = "center")
+
+# Load packages
+library(ggridges)
+library(rcartocolor)
+library(showtext)
+library(tidyverse)
+library(gt)
+
+# Load data
+babynames_usa <- babynames::babynames
+applicants_usa <- babynames::applicants
+births_usa <- babynames::births
+
+# Fonts for plots
+showtext_auto(enable = TRUE)
+font_add_google("Lato")
+font_add_google("Prata")
+```
+
+A good place to start learning R and the tidyverse is the weekly social data
+project [#TidyTuesday](https://github.com/rfordatascience/tidytuesday). Every
+week a new dataset is release to be analyzed by the R community. Here we are
+going to use some examples created by the community and shared by twitter and
+GitHub with the __Baby Names__ dataset from the week 12, 2022.
+
+## Baby Names dataset
+
+This data set comes from Hadley Wickham's `{babynames}` package. The package contains three datasets provided by the US Social Security Administration (SSA)
+
+- `babynames`: The number of children of each sex given each name (1880 - 2017). Only includes names used >5 times.   
+- `applicants`: The number of applicants for social security numbers, for each year, for each sex.  
+- `lifetables`: Cohort life tables data. 
+
+## Objectives
+
+ - Find the most popular name (female and male) in each generation.
+ - Explore how each name's popularity has changed across the generations (1901 - 2017).  
+
+## Methods
+
+Given that the original data sets do not have the generation, it was necessary to
+include the definitions suggested by the [Pew Research Centre](https://www.pewresearch.org/fact-tank/2019/01/17/where-millennials-end-and-generation-z-begins).
+
+Next, the top male and female name for each generation was extracted. **Top** was
+define as the name with the highest **number** of people called that name in a
+generation. Then two data sets (one for female, one for male) were created to
+show the most popular names.
+
+```{r generation classification}
+# Assign each year to a generation. Drop years before 1901.
+baby_usa_1901_onwards <- babynames_usa %>% 
+  filter(year >= 1901) %>% 
+  mutate(generation = case_when(
+    between(year, 1901, 1927) ~ "Greatest Generation",
+    between(year, 1928, 1945) ~ "Silent Generation",
+    between(year, 1946, 1964) ~ "Baby Boomer",
+    between(year, 1965, 1980) ~ "Generation X",
+    between(year, 1981, 1996) ~ "Millennial",
+    between(year, 1997, 2012) ~ "Generation Z",
+    between(year, 2013, 2025) ~ "Alpha"
+  ))
+
+# Create a quick generation summary table
+# Looks like there is more diversity in names amongst the most recent generations 
+# (remember we're only in the middle of Alpha)
+baby_usa_1901_onwards %>% 
+  group_by(generation) %>% 
+  summarise(
+    min_year = min(year),
+    max_year = max(year),
+    unique_names = n_distinct(name)
+  ) %>% 
+  arrange(min_year) %>% 
+  ungroup() %>% 
+  gt() %>%
+  tab_header(
+    title = md("**Generations definitions used in the analysis**"),
+    subtitle = md("")
+  ) %>% 
+  cols_label(
+    generation = "Generation",
+    min_year = "Start year",
+    max_year = "End year",
+    unique_names = "Unique names"
+  ) %>%
+  tab_source_note(
+    source_note = md("As suggested by [Pew Research Centre](https://www.pewresearch.org/fact-tank/2019/01/17/where-millennials-end-and-generation-z-begins)")
+  )
+```
+
+
+```{r top names}
+# Summary table showing the top male and female name in each generation
+top_gen_names_summary <- baby_usa_1901_onwards %>% 
+  group_by(generation, sex, name) %>% 
+  summarise(
+    min_year = min(year),
+    max_year = max(year),
+    n_with_name = sum(n),
+    ) %>% 
+  slice(which(n_with_name == max(n_with_name))) %>% 
+  arrange(min_year, sex) %>% 
+  ungroup()
+
+# Vector with the top female names
+top_f <- top_gen_names_summary %>% 
+  filter(sex == "F") %>% 
+  pull(name)
+
+# Vector with the top male names
+top_m <- top_gen_names_summary %>% 
+  filter(sex == "M") %>% 
+  pull(name)
+```
+
+```{r popular names}
+# Create babynames dataset showing only the most popular female names
+top_gen_names_f <- baby_usa_1901_onwards %>% 
+  filter(sex == "F" & name %in% top_f) %>% 
+  mutate(name = factor(name, levels = unique(top_f))) %>% 
+  arrange(name, year)
+
+# Create babynames dataset showing only the most popular male names
+top_gen_names_m <- baby_usa_1901_onwards %>% 
+  filter(sex == "M" & name %in% top_m) %>% 
+  mutate(name = factor(name, levels = unique(top_m))) %>% 
+  arrange(name, year)
+```
+
+## Data visualization
+
+```{r annotation_text}
+# Annotation text
+annotation_text <- top_gen_names_summary %>% 
+  mutate(
+    label = str_c(generation, "\n(", name, ")"),
+    max_year = ifelse(max_year == 2017, 2025, max_year),
+    x = min_year + (((max_year + 1) - min_year) / 2),
+    y = ifelse(sex == "F", "Mary", "John")
+  )
+```
+
+```{r base_chart, fig.width = 9, fig.height = 6, fig.alt = "Basic base plot to build upon." }
+p_base <- top_gen_names_f %>% 
+  ggplot() +
+  # Ridge line plot
+  geom_density_ridges_gradient(
+    aes(x = year, y = fct_rev(name), height = prop, fill = prop), 
+    stat = "identity", 
+    scale = 1, 
+    colour = "grey85"
+    ) +
+  # Scales
+  scale_x_continuous(
+    limits = c(1901, 2026), 
+    breaks = c(1901, 1928, 1946, 1965, 1981, 1997, 2013, 2026),
+    expand = c(0.02, 0, 0.02, 0)
+    ) +
+  scale_y_discrete(
+    expand = expansion(add = c(0.1, 1.5)),
+    position = "right"
+    ) +
+  # Styling
+  theme_minimal() +
+  theme(
+    text = element_text(family = "Lato", colour = "grey40", size = 12),
+    plot.title = element_text(family = "Prata", colour = "black", size = 14, 
+                              face = "bold", margin = margin(b = 10), hjust = 0),
+    plot.subtitle = element_text(size = 12, hjust = 0),
+    plot.caption = element_text(size = 9, margin = margin(t = 10), hjust = 0),
+    plot.background = element_rect(colour = "white", fill = "white"),
+    plot.margin = margin(t = 10, r = 10, b = 10, l = 10),
+    panel.grid.minor = element_blank(),
+    panel.grid.major.x = element_line(linetype = "dashed", colour = "grey80"),
+    axis.text = element_text(size = 10, colour = "grey40"),
+    axis.title = element_text(size = 10, colour = "grey40", hjust = 0),
+    legend.position = "top",
+    legend.justification = 0.98,
+    legend.key.width = unit(0.3,"inch"),
+    legend.text = element_text(size = 9),
+    legend.margin = margin(t = 0, r = 0, b = 0, l = 0),
+    legend.box.margin = margin(t = -20, r = 0, b = 5, l = 0)
+    ) +
+  # Titles
+  labs(
+    x = "Year",
+    y = "",
+    fill = "",
+    caption = "Visualisation: Fiona Lees (@Fi_Lees) | Source: {babynames} R Package / US Social Security Administration | Tidy Tuesday: Week 12, 2022"
+    )
+```
+
+```{r final_chart_f, fig.width = 9, fig.height = 7, fig.alt = "Ridgeline chart showing the rise and fall of each generation's most popular girl name (USA, 1901 - 2017). Greatest: Mary, Silent: Mary, Boomer: Mary, X: Jennifer, Millennial: Jessica, Z: Emily, Alpha: Emma."}
+# Chart for girls 
+p_final_f <- p_base +
+  # Fill colour for ridges
+  scale_fill_carto_c(
+    palette = "OrYel", 
+    labels = scales::label_percent(accuracy = 1), 
+    guide = guide_colourbar(reverse = TRUE)
+    ) +
+  # Annotation text
+  geom_text(
+    data = filter(annotation_text,sex == "F"),
+    aes(x = x, y = y, label = label),
+    family = "Lato",
+    colour = "grey40",
+    nudge_y = 1.3,
+    size = 3.4,
+    hjust = 0.5
+    ) +
+  # Titles
+  labs(
+    title = "The rise and fall of each generation's most popular name: Girls, USA",
+    subtitle = "Percentage of girls, born in each year, with each of these names (1901 - 2017)"
+    )
+  
+p_final_f
+```
+
+```{r final_chart_m, fig.width = 9, fig.height = 8, fig.alt = "Ridgeline chart showing the rise and fall of each generation's most popular boy name (USA, 1901 - 2017). Greatest: John, Silent: Robert, Boomer: James, X: Michael, Millennial: Michael, Z: Jabob, Alpha: Noah."}
+# Chart for boys
+# Update base plot with data for males
+p_final_m <- p_base %+% top_gen_names_m +
+  # Fill colour for ridges
+  scale_fill_carto_c(
+    palette = "Teal", 
+    labels = scales::label_percent(accuracy = 1), 
+    guide = guide_colourbar(reverse = TRUE)
+    ) +
+  # Annotation text
+  geom_text(
+    data = filter(annotation_text,sex == "M"),
+    aes(x = x, y = y, label = label),
+    family = "Lato",
+    colour = "grey40",
+    nudge_y = 1.3,
+    size = 3.4,
+    hjust = 0.5
+    ) +
+  # Titles
+  labs(
+    title = "The rise and fall of each generation's most popular name: Boys, USA",
+    subtitle = "Percentage of boys, born in each year, with each of these names (1901 - 2017)"
+    )
+  
+p_final_m
+```
+
+## References
+
+Code used to create the generation data set and visualizations comes from 
+[Fiona Lees](https://github.com/fi-lees/tidy_tuesday/tree/master/2022/TT_2022_W12_BabyNames)
+
+
