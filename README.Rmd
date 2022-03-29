@@ -1,0 +1,32 @@
+---
+output: github_document
+---
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+# Introduction to RMarkdown <a href="https://www.youtube.com/watch?v=AjxgFVYMVnw"><img src="img/intro.jpg" align="right" width="30%"></a>
+
+This is an introduction to RMarkdown for those who want to get quickly started
+with the basics and play around with this tool.
+
+## Contents:
+
+| file | URL | Description |
+| ---- | --- | ----------- |
+| basic_template.Rmd | | The template that comes by default with RMarkdown |
+| baby_names_report.Rmd | | A file with example code and more steps in the YAML |
+| baby_names_setup.RMD | | The same file with code examples just with more tweaks in the YAML|
+
+## References
+
+Code used to create the generation data set and visualizations comes from 
+[Fiona Lees](https://github.com/fi-lees/tidy_tuesday/tree/master/2022/TT_2022_W12_BabyNames)
+
+
