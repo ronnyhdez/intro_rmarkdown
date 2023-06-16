@@ -3,6 +3,8 @@
 
 # Introduction to RMarkdown <a href="https://www.youtube.com/watch?v=AjxgFVYMVnw"><img src="img/intro.jpg" align="right" width="30%"></a>
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.8048517.svg)](https://doi.org/10.5281/zenodo.8048517)
+
 This is an introduction to RMarkdown for those who want to get quickly
 started with the basics and play around with this tool.
 
@@ -14,11 +16,11 @@ The slides are saved as pdf
 
 ## Contents:
 
-| file                    | URL                                                                                  | Description                                                        |
-|-------------------------|--------------------------------------------------------------------------------------|--------------------------------------------------------------------|
-| basic\_template.Rmd     | [link](https://github.com/ronnyhdez/intro_rmarkdown/blob/main/basic_template.Rmd)    | The template that comes by default with RMarkdown                  |
-| baby\_names\_report.Rmd | [link](https://github.com/ronnyhdez/intro_rmarkdown/blob/main/baby_names_report.Rmd) | A file with example code and more steps in the YAML                |
-| baby\_names\_setup.RMD  | [link](https://github.com/ronnyhdez/intro_rmarkdown/blob/main/baby_names_setup.Rmd)  | The same file with code examples just with more tweaks in the YAML |
+| file                  | URL                                                                                  | Description                                                        |
+|-----------------------|--------------------------------------------------------------------------------------|--------------------------------------------------------------------|
+| basic_template.Rmd    | [link](https://github.com/ronnyhdez/intro_rmarkdown/blob/main/basic_template.Rmd)    | The template that comes by default with RMarkdown                  |
+| baby_names_report.Rmd | [link](https://github.com/ronnyhdez/intro_rmarkdown/blob/main/baby_names_report.Rmd) | A file with example code and more steps in the YAML                |
+| baby_names_setup.RMD  | [link](https://github.com/ronnyhdez/intro_rmarkdown/blob/main/baby_names_setup.Rmd)  | The same file with code examples just with more tweaks in the YAML |
 
 ## References
 
